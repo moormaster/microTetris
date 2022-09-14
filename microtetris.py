@@ -31,6 +31,7 @@
 
 import random
 import gi
+import sys
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
@@ -169,7 +170,7 @@ class Game:
     row_matrix = None
     
     
-    def __init__(self):
+    def __init__(self, screen_dimension=None, screen_position=None):
     
         w = Gtk.Window()
         self.window = w
@@ -185,12 +186,32 @@ class Game:
         self.width = self.columns * (self.square_size + self.spacing) - self.spacing + 4
         self.height = self.rows * (self.square_size + self.spacing) - self.spacing + 4
         w.resize(self.width, self.height)
-        
-        sw = Gdk.Screen.width()
-        sh = Gdk.Screen.height()
-        print("Recognized screen size of " + str(sw) + "x" + str(sh))
+      
+        if screen_dimension is None or screen_position is None:
+            display = Gdk.Display.get_default()
+            screen_geometry = display.get_primary_monitor().get_geometry()
 
-        w.move(sw - self.width, sh - self.height)
+            sx = screen_geometry.x
+            sy = screen_geometry.y
+            sw = screen_geometry.width
+            sh = screen_geometry.height
+
+        if not screen_dimension is None:
+            sx = 0
+            sy = 0
+            sw = screen_dimension[0]
+            sh = screen_dimension[1]
+
+        if not screen_position is None:
+            sx = screen_position[0]
+            sy = screen_position[1]
+
+        print("Recognized screen size of " + str(sw) + "x" + str(sh) + " at position " + str(sx) + ", " + str(sy))
+
+        x = sx + sw - self.width
+        y = sy + sh - self.height - 48
+        print("Moving window of size " + str(self.width) + "x" + str(self.height) + " to position " + str(x) + ", " + str(y))
+        w.move(x, y)
         
         w.connect("key-press-event", self.catch_keypress)
         w.connect("destroy", self.quit)
@@ -427,8 +448,14 @@ class Game:
 
 
 if __name__ == "__main__":
-    
-    game = Game()
+    screen_dimension = None
+    if len(sys.argv) >= 3:
+        screen_dimension = [ int(sys.argv[1]), int(sys.argv[2]) ]
+    if len(sys.argv) >= 5:
+        screen_position = [ int(sys.argv[3]), int(sys.argv[4]) ]
+
+
+    game = Game(screen_dimension, screen_position)
     game.run()
     
     
