@@ -30,9 +30,16 @@
 
 
 import random
-import gtk, gobject
+import gi
 
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("GdkPixbuf", "2.0")
 
+from gi.repository import Gtk
+from gi.repository import GObject
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
 
 
 class Game:
@@ -164,7 +171,7 @@ class Game:
     
     def __init__(self):
     
-        w = gtk.Window()
+        w = Gtk.Window()
         self.window = w
         w.set_title("microTetris")
         if self.skip_taskbar:
@@ -173,25 +180,27 @@ class Game:
             
         w.set_decorated(False)
         if self.show_icon:
-            w.set_icon(gtk.gdk.pixbuf_new_from_xpm_data(self.icon))
+            w.set_icon(GdkPixbuf.Pixbuf.new_from_xpm_data(self.icon))
         
         self.width = self.columns * (self.square_size + self.spacing) - self.spacing + 4
         self.height = self.rows * (self.square_size + self.spacing) - self.spacing + 4
         w.resize(self.width, self.height)
         
-        sw = gtk.gdk.screen_width()
-        sh = gtk.gdk.screen_height()
+        sw = Gdk.Screen.width()
+        sh = Gdk.Screen.height()
+        print("Recognized screen size of " + str(sw) + "x" + str(sh))
+
         w.move(sw - self.width, sh - self.height)
         
         w.connect("key-press-event", self.catch_keypress)
         w.connect("destroy", self.quit)
         w.connect("focus-out-event", lambda *a: self.toggle_pause(True))
         
-        da = gtk.DrawingArea()
+        da = Gtk.DrawingArea()
         self.widget = da
         w.add(da)
         
-        da.connect("expose-event", self.draw)
+        da.connect("draw", self.draw)
         
         random.seed()
         
@@ -213,28 +222,27 @@ class Game:
         
         self.new_game()
         self.window.show_all()
-        gtk.main()
+        Gtk.main()
     
     
     
     def quit(self, *args):
         
-        gtk.main_quit()
+        Gtk.main_quit()
     
     
     
-    def draw(self, widget, event):
+    def draw(self, widget, cr):
+
+        area = [0, 0, widget.get_allocated_width(), widget.get_allocated_height() ]
         
-        widget.window.clear()
-        cr = widget.window.cairo_create()
-        
-        cr.rectangle(*event.area)
+        cr.rectangle(*area)
         cr.clip()
         
-        cr.rectangle(*event.area)
+        cr.rectangle(*area)
         cr.set_source_rgb(0, 0, 0)
         cr.fill()
-        cr.rectangle(*event.area)
+        cr.rectangle(*area)
         cr.set_source_rgb(0.5, 0.5, 0.5)
         cr.stroke()
         
@@ -267,9 +275,7 @@ class Game:
                     cr.fill()
                 j += 1
             i += 1
-            
-  
-    
+
     
         
     # Game routine
@@ -354,7 +360,7 @@ class Game:
             paused = not self.paused
             
         if not paused:
-            gobject.timeout_add(self.timeout, self.tick)
+            GObject.timeout_add(self.timeout, self.tick)
         
         self.paused = paused
         
