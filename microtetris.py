@@ -30,20 +30,11 @@
 
 
 import random
-import gi
 import sys
+from Tkinter import *
+from Tix import *
 
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-gi.require_version("GdkPixbuf", "2.0")
-
-from gi.repository import Gtk
-from gi.repository import GObject
-from gi.repository import Gdk
-from gi.repository import GdkPixbuf
-
-
-class Game:
+class Game(Frame):
     
     # Row number
     rows = 20
@@ -57,42 +48,31 @@ class Game:
     # Speed (interval between two ticks in milliseconds: larger for slower speed)
     timeout = 800
     
-    
-    # Do not show in taskbar & pager
-    skip_taskbar = False
-    # Show icon in taskbar
-    show_icon = True
-
-
     keys = {
-        # Q
-        113:    "quit",
-        # ESC
-        65307:  "quit",
         # N
-        110:    "new_game",
+        57:     "new_game",
         # P
-        112:    "toggle_pause",
+        33:     "toggle_pause",
         # Left arrow
-        65361:  "left",
+        100:    "left",
         # Right arrow
-        65363:  "right",
+        102:    "right",
         # Up arrow
-        65362:  "rotate",
+        98:     "rotate",
         # Down arrow
-        65364:  "drop"
+        104:    "drop"
     }
     
     
     # Red, Green, Blue triplets
     colors = ( 
-            (   1,   1,   0),   # 1 Yellow
-            (   0,   1,   0),   # 2 Green
-            ( 0.2, 0.2,   1),   # 3 Blue
-            (   1,   0,   1),   # 4 Purple
-            (   0,   1,   1),   # 5 Cyan
-            (   1,   0,   0),   # 6 Red
-            (   1,   1,   1),   # 7 White
+            "yellow",   # 1 Yellow
+            "green",   # 2 Green
+            "#3333ff",   # 3 Blue
+            "purple",   # 4 Purple
+            "cyan",   # 5 Cyan
+            "red",   # 6 Red
+            "white",   # 7 White
         )
     
     
@@ -166,35 +146,39 @@ class Game:
     
     
     paused = True
+    tick_active = False
     falling_block = None
     row_matrix = None
     
-    
-    def __init__(self, screen_dimension=None, screen_position=None):
-    
-        w = Gtk.Window()
-        self.window = w
-        w.set_title("microTetris")
-        if self.skip_taskbar:
-            w.set_property('skip-pager-hint', True)
-            w.set_property('skip-taskbar-hint', True)
-            
-        w.set_decorated(False)
-        if self.show_icon:
-            w.set_icon(GdkPixbuf.Pixbuf.new_from_xpm_data(self.icon))
+    def __init__(self, master=None, screen_dimension=None, screen_position=None):
+        Frame.__init__(self, master)
+        self.pack()
+
+        self.master.title("microTetris")
+        # self.master.overrideredirect(True)
         
+        # TODO: set self.icon as application icon
+        # if self.show_icon:
+        #    w.set_icon(GdkPixbuf.Pixbuf.new_from_xpm_data(self.icon))
+
         self.width = self.columns * (self.square_size + self.spacing) - self.spacing + 4
         self.height = self.rows * (self.square_size + self.spacing) - self.spacing + 4
-        w.resize(self.width, self.height)
       
-        if screen_dimension is None or screen_position is None:
-            display = Gdk.Display.get_default()
-            screen_geometry = display.get_primary_monitor().get_geometry()
+        self.master.bind("<Destroy>", self.quit)
+        self.master.bind("<q>", self.quit)
+        self.master.bind("<Escape>", self.quit)
+        self.master.bind("<FocusIn>", lambda *a: self.toggle_pause(False))
+        self.master.bind("<FocusOut>", lambda *a: self.toggle_pause(True))
+        self.master.bind("<KeyPress>", self.catch_keypress)
 
-            sx = screen_geometry.x
-            sy = screen_geometry.y
-            sw = screen_geometry.width
-            sh = screen_geometry.height
+        self.canvas = Canvas(self, width=self.width, height=self.height)
+        self.canvas.pack()
+        
+        if screen_dimension is None or screen_position is None:
+            sx = 0
+            sy = 0
+            sw = self.master.winfo_screenwidth()
+            sh = self.master.winfo_screenheight()
 
         if not screen_dimension is None:
             sx = 0
@@ -224,48 +208,24 @@ class Game:
         da.connect("draw", self.draw)
         
         random.seed()
-        
-        
 
-
-    def catch_keypress(self, widget, event):
-        
-        k = event.keyval
+    def catch_keypress(self, event):
+        print("key pressed: {}".format(event.keycode))
+        k = event.keycode
         if k in self.keys:
             f = self.keys[k]
             assert hasattr(self, f), "Missing callback for '%s'" % f
             getattr(self, f)()
-                
     
+    def quit(self, event):
+        self.master.destroy()
     
-    
-    def run(self):
+    def draw(self):
+        cr = self.canvas
+        area = [0, 0, self.width, self.height ]
         
-        self.new_game()
-        self.window.show_all()
-        Gtk.main()
-    
-    
-    
-    def quit(self, *args):
-        
-        Gtk.main_quit()
-    
-    
-    
-    def draw(self, widget, cr):
-
-        area = [0, 0, widget.get_allocated_width(), widget.get_allocated_height() ]
-        
-        cr.rectangle(*area)
-        cr.clip()
-        
-        cr.rectangle(*area)
-        cr.set_source_rgb(0, 0, 0)
-        cr.fill()
-        cr.rectangle(*area)
-        cr.set_source_rgb(0.5, 0.5, 0.5)
-        cr.stroke()
+        cr.create_rectangle(*area, fill="black")
+        cr.create_rectangle(*area, outline="#808080")
         
         if self.falling_block is not None:
             
@@ -276,11 +236,9 @@ class Game:
                 j = 0
                 for c in r:
                     if c > 0:
-                        cr.set_source_rgb(*self.colors[c - 1])
                         x = basex + j * (self.square_size + self.spacing)
                         y = basey + i * (self.square_size + self.spacing)
-                        cr.rectangle(x, y, self.square_size, self.square_size)
-                        cr.fill()
+                        cr.create_rectangle(x, y, x + self.square_size, y + self.square_size, fill=self.colors[c-1])
                     j += 1
                 i += 1
          
@@ -289,25 +247,19 @@ class Game:
             j = 0
             for c in r:
                 if c > 0:
-                    cr.set_source_rgb(*self.colors[c - 1])
                     x = j * (self.square_size + self.spacing) + 2
                     y = i * (self.square_size + self.spacing) + 2
-                    cr.rectangle(x, y, self.square_size, self.square_size)
-                    cr.fill()
+                    cr.create_rectangle(x, y, x + self.square_size, y + self.square_size, fill=self.colors[c-1])
                 j += 1
             i += 1
-
-    
         
     # Game routine
-    
     def new_game(self):
-        
         self.row_matrix = [[0 for i in range(1, self.columns + 1)] for j in range(1, self.rows + 1)]
         self.falling_block = None
         self.toggle_pause(False)
-    
-    
+        self.tick(extra=self.tick_active)
+        self.tick_active = True
     
     def new_block(self):
         
@@ -317,44 +269,43 @@ class Game:
             block = self.rotate_block(block)
         self.falling_block = dict(block = block, x = (self.columns - len(block[0])) / 2, y = 0)
         
-        
-        
-    def tick(self):
-        
-        if self.falling_block is None:
-            self.new_block()
-        else:
-            fb = self.falling_block
-            
-            touched = False
-            
-            if len(fb['block']) + fb['y'] == self.rows:
-                touched = True
-            else:
-                i = 0
-                for r in fb['block']:
-                    j = 0
-                    for c in r:
-                        if c > 0:
-                            y = fb['y'] + i
-                            x = fb['x'] + j
-                            if (self.row_matrix[y + 1][x] > 0):
-                                touched = True
-                                break
-                        j += 1
-                    i += 1
-            
-            
-            if touched:
-                self.fix_block(fb)
+    def tick(self, extra=None):
+        if not self.paused:
+            if self.falling_block is None:
                 self.new_block()
             else:
-                fb['y'] += 1
+                fb = self.falling_block
             
-        self.widget.queue_draw()
-        
+                touched = False
+            
+                if len(fb['block']) + fb['y'] == self.rows:
+                    touched = True
+                else:
+                    i = 0
+                    for r in fb['block']:
+                        j = 0
+                        for c in r:
+                            if c > 0:
+                                y = fb['y'] + i
+                                x = fb['x'] + j
+                                if (self.row_matrix[y + 1][x] > 0):
+                                    touched = True
+                                    break
+                            j += 1
+                        i += 1
+            
+                if touched:
+                    self.fix_block(fb)
+                    self.new_block()
+                else:
+                    fb['y'] += 1
+            
+            self.draw()
+
+        if not extra:
+            self.after(self.timeout, self.tick)
+         
         return not self.paused
-    
     
     def fix_block(self, fb):
         if fb['y'] <= 1:
@@ -373,38 +324,30 @@ class Game:
                 self.row_matrix.remove(r)
                 self.row_matrix.insert(0, [0 for i in range(self.columns + 1)])
     
-    
-    
     def toggle_pause(self, paused = None):
-        
         if paused is None:
             paused = not self.paused
             
-        if not paused:
-            GObject.timeout_add(self.timeout, self.tick)
-        
         self.paused = paused
-        
-    
     
     def left(self):
         if not self.paused:
             x = max(self.falling_block['x'] - 1, 0)
             self.falling_block['x'] = x
-            self.widget.queue_draw()
+            self.draw()
        
     def right(self):
         if not self.paused:
             x = min(self.falling_block['x'] + 1, self.columns - len(self.falling_block['block'][0]))
             self.falling_block['x'] = x
-            self.widget.queue_draw()
+            self.draw()
         
     def rotate(self):
         if not self.paused:
             b = self.falling_block['block']
             b = self.rotate_block(b)
             self.falling_block['block'] = b
-            self.widget.queue_draw()
+            self.draw()
     
     def drop(self):
         if not self.paused:
@@ -428,9 +371,8 @@ class Game:
             fb['y'] = y + 1
             self.fix_block(fb)
             self.new_block()
-            self.tick()
+            self.tick(extra=True)
         
-    
     def rotate_block(self, matrix):
 
         rows = len(matrix[0])
@@ -443,11 +385,10 @@ class Game:
                 cur.append(matrix[j][rows - i - 1])
         return new
         
-    
-
-
 
 if __name__ == "__main__":
+    root = Tk()
+
     screen_dimension = None
     screen_position = None
     if len(sys.argv) >= 3:
@@ -456,7 +397,6 @@ if __name__ == "__main__":
         screen_position = [ int(sys.argv[3]), int(sys.argv[4]) ]
 
 
-    game = Game(screen_dimension, screen_position)
-    game.run()
-    
-    
+    game = Game(root, screen_dimension, screen_position)
+    game.new_game()
+    root.mainloop()
