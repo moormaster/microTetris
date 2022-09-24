@@ -28,7 +28,7 @@
 # http://www.opensource.org/licenses/gpl-license.php
 #
 
-
+import platform
 import random
 import sys
 from Tkinter import *
@@ -155,7 +155,9 @@ class Game(Frame):
         self.pack()
 
         self.master.title("microTetris")
-        # self.master.overrideredirect(True)
+
+        if platform.system() == "Windows":
+            self.master.overrideredirect(True)
         
         # TODO: set self.icon as application icon
         # if self.show_icon:
