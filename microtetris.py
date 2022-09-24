@@ -49,18 +49,13 @@ class Game(Frame):
     timeout = 800
     
     keys = {
-        # N
-        57:     "new_game",
-        # P
-        33:     "toggle_pause",
-        # Left arrow
-        100:    "left",
-        # Right arrow
-        102:    "right",
-        # Up arrow
-        98:     "rotate",
-        # Down arrow
-        104:    "drop"
+        "n":     "new_game",
+        "p":     "toggle_pause",
+        "Left":    "left",
+        "Right":    "right",
+        "Up":     "rotate",
+        "Down":    "down",
+        "space":    "drop"
     }
     
     
@@ -212,8 +207,7 @@ class Game(Frame):
         random.seed()
 
     def catch_keypress(self, event):
-        print("key pressed: {}".format(event.keycode))
-        k = event.keycode
+        k = event.keysym
         if k in self.keys:
             f = self.keys[k]
             assert hasattr(self, f), "Missing callback for '%s'" % f
@@ -350,6 +344,10 @@ class Game(Frame):
             b = self.rotate_block(b)
             self.falling_block['block'] = b
             self.draw()
+
+    def down(self):
+        if not self.paused:
+            self.tick(extra=True)
     
     def drop(self):
         if not self.paused:
