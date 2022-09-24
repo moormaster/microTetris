@@ -32,7 +32,6 @@ import platform
 import random
 import sys
 from tkinter import *
-from tkinter.tix import *
 
 class Game(Frame):
     
