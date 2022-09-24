@@ -31,8 +31,8 @@
 import platform
 import random
 import sys
-from Tkinter import *
-from Tix import *
+from tkinter import *
+from tkinter.tix import *
 
 class Game(Frame):
     
@@ -189,21 +189,13 @@ class Game(Frame):
 
         print("Recognized screen size of " + str(sw) + "x" + str(sh) + " at position " + str(sx) + ", " + str(sy))
 
-        x = sx + sw - self.width
-        y = sy + sh - self.height - 48
-        print("Moving window of size " + str(self.width) + "x" + str(self.height) + " to position " + str(x) + ", " + str(y))
-        w.move(x, y)
-        
-        w.connect("key-press-event", self.catch_keypress)
-        w.connect("destroy", self.quit)
-        w.connect("focus-out-event", lambda *a: self.toggle_pause(True))
-        
-        da = Gtk.DrawingArea()
-        self.widget = da
-        w.add(da)
-        
-        da.connect("draw", self.draw)
-        
+        self.master.update()
+        x = sx + sw - self.master.winfo_width()
+        y = sy + sh - self.master.winfo_height() - 48
+        print("Moving window of size " + str(self.master.winfo_width()) + "x" + str(self.master.winfo_height()) + " to position " + str(x) + ", " + str(y))
+
+        self.master.geometry("+{}+{}".format(x, y))
+ 
         random.seed()
 
     def catch_keypress(self, event):
@@ -263,7 +255,7 @@ class Game(Frame):
         rotation = random.randint(0, 3)
         for i in range(rotation):
             block = self.rotate_block(block)
-        self.falling_block = dict(block = block, x = (self.columns - len(block[0])) / 2, y = 0)
+        self.falling_block = dict(block = block, x = (self.columns - len(block[0])) // 2, y = 0)
         
     def tick(self, extra=None):
         if not self.paused:
