@@ -210,7 +210,8 @@ class Game(Frame):
     def draw(self):
         cr = self.canvas
         area = [0, 0, self.width, self.height ]
-        
+
+        cr.delete("all")
         cr.create_rectangle(*area, fill="black")
         cr.create_rectangle(*area, outline="#808080")
         
