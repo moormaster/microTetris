@@ -62,8 +62,8 @@ class Game(Frame):
     colors = ( 
             "yellow",   # 1 Yellow
             "green",   # 2 Green
-            "#3333ff",   # 3 Blue
-            "purple",   # 4 Purple
+            "light blue",   # 3 Blue
+            "tan",   # 4 Purple
             "cyan",   # 5 Cyan
             "red",   # 6 Red
             "white",   # 7 White
