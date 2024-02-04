@@ -310,7 +310,7 @@ class Game(Frame):
         for r in self.row_matrix:
             if 0 not in r:
                 self.row_matrix.remove(r)
-                self.row_matrix.insert(0, [0 for i in range(self.columns + 1)])
+                self.row_matrix.insert(0, [0 for i in range(1, self.columns + 1)])
     
     def toggle_pause(self, paused = None):
         if paused is None:
