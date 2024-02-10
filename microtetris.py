@@ -322,36 +322,36 @@ class Game(Frame):
         if not self.paused:
             new_x = max(self.falling_block['x'] - 1, 0)
 
-            # check if moving left is blocked by other blocks
-            block_width = len(self.falling_block['block'][0])
-            block_height = len(self.falling_block['block'])
-            i = 0
-            for row in self.row_matrix[self.falling_block['y']:self.falling_block['y']+block_height]:
-                j = 0
-                for c in row[new_x:min(new_x+block_width, self.columns)]:
-                    if self.falling_block['block'][i][j] != 0 and c != 0:
-                        return
-                    j += 1
-                i += 1
+            if self.is_block_colliding(self.falling_block['block'], new_x, self.falling_block['y']):
+                return
 
             self.falling_block['x'] = new_x
             self.draw()
        
+    def is_block_colliding(self, block, x, y):
+        block_width = len(block[0])
+        block_height = len(block)
+
+        upper_bound_x = min(x+block_width, self.columns)
+        upper_bound_y = min(y+block_height, self.rows)
+
+        i = 0
+        for row in self.row_matrix[y:upper_bound_y]:
+            j = 0
+            for c in row[x:upper_bound_x]:
+                if block[i][j] != 0 and c != 0:
+                    return True
+                j += 1
+            i += 1
+
+        return False
+
     def right(self):
         if not self.paused:
             new_x = min(self.falling_block['x'] + 1, self.columns - len(self.falling_block['block'][0]))
 
-            # check if moving right is blocked by other blocks
-            block_width = len(self.falling_block['block'][0])
-            block_height = len(self.falling_block['block'])
-            i = 0
-            for row in self.row_matrix[self.falling_block['y']:self.falling_block['y']+block_height]:
-                j = 0
-                for c in row[new_x:min(new_x+block_width, self.columns)]:
-                    if self.falling_block['block'][i][j] != 0 and c != 0:
-                        return
-                    j += 1
-                i += 1
+            if self.is_block_colliding(self.falling_block['block'], new_x, self.falling_block['y']):
+                return
 
             self.falling_block['x'] = new_x
             self.draw()
@@ -360,6 +360,10 @@ class Game(Frame):
         if not self.paused:
             b = self.falling_block['block']
             b = self.rotate_block(b)
+
+            if self.is_block_colliding(b, self.falling_block['x'], self.falling_block['y']):
+                return
+
             self.falling_block['block'] = b
             self.draw()
 
