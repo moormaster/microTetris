@@ -264,25 +264,7 @@ class Game(Frame):
             else:
                 fb = self.falling_block
             
-                touched = False
-            
-                if len(fb['block']) + fb['y'] == self.rows:
-                    touched = True
-                else:
-                    i = 0
-                    for r in fb['block']:
-                        j = 0
-                        for c in r:
-                            if c > 0:
-                                y = fb['y'] + i
-                                x = fb['x'] + j
-                                if (self.row_matrix[y + 1][x] > 0):
-                                    touched = True
-                                    break
-                            j += 1
-                        i += 1
-            
-                if touched:
+                if self.is_block_touching(fb['block'], fb['x'], fb['y']):
                     self.fix_block(fb)
                     self.new_block()
                 else:
@@ -294,6 +276,57 @@ class Game(Frame):
             self.after(self.timeout, self.tick)
          
         return not self.paused
+
+    def is_block_touching(self, block, x, y):
+        return self.get_minimal_distance_to_block_or_bottom(block, x, y) == 1
+
+    def get_minimal_distance_to_block_or_bottom(self, block, x, y):
+        block_width = len(block[0])
+        block_height = len(block)
+
+        max_y_of_block_column = []
+        for i in range(x, min(self.columns, x + block_width)):
+            block_col = i - x
+            max_y = None
+
+            j = y
+            for c in self.get_column_of(block, block_col):
+                if c != 0 and (max_y is None or j > max_y):
+                    max_y = j
+
+                if j >= self.rows:
+                    break
+
+                j += 1
+
+            max_y_of_block_column.append(max_y)
+
+        min_y_of_matrix_below_block = []
+        for i in range(x, min(self.columns, x + block_width)):
+            block_col = i - x
+            min_y = self.rows
+
+            j = 0
+            for c in self.get_column_of(self.row_matrix, i):
+                if not max_y_of_block_column[block_col] is None and j > max_y_of_block_column[block_col]:
+                    if c != 0 and j < min_y:
+                        min_y = j
+
+                j += 1
+
+            min_y_of_matrix_below_block.append(min_y)
+
+        return min(map(
+                lambda t: t[1] - t[0],
+                filter(
+                    lambda t: not t[0] is None,
+                    zip(max_y_of_block_column, min_y_of_matrix_below_block)
+                )
+            ))
+
+    @staticmethod
+    def get_column_of(block, column):
+        return [ row[column] for row in block ]
     
     def fix_block(self, fb):
         if fb['y'] <= 1:
@@ -375,22 +408,7 @@ class Game(Frame):
         if not self.paused:
             fb = self.falling_block
             
-            touched = True
-            y = self.rows - len(fb['block'])
-            while touched:
-                touched = False
-                i = 0
-                for r in fb['block']:
-                    cy = y + i
-                    j = 0
-                    for c in r:
-                        if c > 0 and self.row_matrix[cy][fb['x']+j] > 0:
-                            touched = True
-                            break
-                        j += 1
-                    i += 1
-                y -= 1
-            fb['y'] = y + 1
+            fb['y'] += self.get_minimal_distance_to_block_or_bottom(fb['block'], fb['x'], fb['y'])-1
             self.fix_block(fb)
             self.new_block()
             self.tick(extra=True)
