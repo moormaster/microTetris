@@ -365,8 +365,14 @@ class Game(Frame):
         block_width = len(block[0])
         block_height = len(block)
 
-        upper_bound_x = min(x+block_width, self.columns)
-        upper_bound_y = min(y+block_height, self.rows)
+        if x + block_width > self.columns:
+            return True
+
+        if y + block_height > self.rows:
+            return True
+
+        upper_bound_x = x+block_width
+        upper_bound_y = y+block_height
 
         i = 0
         for row in self.row_matrix[y:upper_bound_y]:
