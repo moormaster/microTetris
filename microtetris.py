@@ -40,7 +40,7 @@ class Game(Frame):
     # Column number
     columns = 11
     # Size of a square
-    square_size = 3
+    minimum_square_size = square_size = 3
     # Spacing between squares
     spacing = 1
     
@@ -50,6 +50,10 @@ class Game(Frame):
     keys = {
         "n":     "new_game",
         "p":     "toggle_pause",
+        "KP_Add":     "zoom_in",
+        "plus":     "zoom_in",
+        "KP_Subtract":     "zoom_out",
+        "minus":     "zoom_out",
         "Left":    "left",
         "Right":    "right",
         "Up":     "rotate",
@@ -157,8 +161,7 @@ class Game(Frame):
         # if self.show_icon:
         #    w.set_icon(GdkPixbuf.Pixbuf.new_from_xpm_data(self.icon))
 
-        self.width = self.columns * (self.square_size + self.spacing) - self.spacing + 4
-        self.height = self.rows * (self.square_size + self.spacing) - self.spacing + 4
+        self.width, self.height = self.get_minimum_window_dimensions().values()
       
         self.master.bind("<Destroy>", self.quit)
         self.master.bind("<q>", self.quit)
@@ -197,6 +200,27 @@ class Game(Frame):
  
         random.seed()
 
+    def get_minimum_window_dimensions(self):
+        return {
+            'width': self.columns * (self.square_size + self.spacing) - self.spacing + 4,
+            'height': self.rows * (self.square_size + self.spacing) - self.spacing + 4
+        }
+
+    def get_minimum_window_bounds(self, lower_right_position = None):
+        if lower_right_position is None:
+            lower_right_position = {
+                'x': self.master.winfo_x() + self.master.winfo_width(),
+                'y': self.master.winfo_y() + self.master.winfo_height()
+            }
+
+        bounds = self.get_minimum_window_dimensions()
+        bounds.update({
+            'x': lower_right_position['x'] - bounds['width'],
+            'y': lower_right_position['y'] - bounds['height']
+        })
+
+        return bounds
+
     def catch_keypress(self, event):
         k = event.keysym
         if k in self.keys:
@@ -206,7 +230,32 @@ class Game(Frame):
     
     def quit(self, event):
         self.master.destroy()
-    
+
+    def zoom_in(self):
+        self.square_size *= 2
+
+        bounds = self.get_minimum_window_bounds()
+
+        self.canvas.config(width=bounds['width'], height=bounds['height'])
+        self.master.geometry("{}x{}+{}+{}".format(bounds['width'], bounds['height'], bounds['x'], bounds['y']))
+        self.width, self.height = bounds['width'], bounds['height']
+
+        self.draw()
+
+    def zoom_out(self):
+        if self.square_size // 2 < self.minimum_square_size:
+            return
+
+        self.square_size //= 2
+
+        bounds = self.get_minimum_window_bounds()
+
+        self.canvas.config(width=bounds['width'], height=bounds['height'])
+        self.master.geometry("{}x{}+{}+{}".format(bounds['width'], bounds['height'], bounds['x'], bounds['y']))
+        self.width, self.height = bounds['width'], bounds['height']
+
+        self.draw()
+
     def draw(self):
         cr = self.canvas
         area = [0, 0, self.width, self.height ]
